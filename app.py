@@ -182,7 +182,10 @@ OPCOES_OBSERVACAO = [
     "Outro (ver observacao livre abaixo)",
 ]
 
-def limpar_pdf(texto: str) -> str:
+def limpar_pdf(texto) -> str:
+    if not texto:
+        return "-"
+    texto = str(texto)
     mapa = {
         "\u2014":"-", "\u2013":"-", "\u2022":"*", "\u2192":"->",
         "\u00e9":"e", "\u00ea":"e", "\u00e8":"e", "\u00eb":"e",
