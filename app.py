@@ -7,7 +7,7 @@ streamlit run app.py
 
 # ============================================================
 USE_SUPABASE = True
-SUPABASE_URL = "sb_publishable_jeY_c2MW4ebc3Nf7YAV45Q_sRYMBt2h"
+SUPABASE_URL = "https://juzyjqauwujtcsxgsogh.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1enlqcWF1d3VqdGNzeGdzb2doIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzE1MjUsImV4cCI6MjA4ODMwNzUyNX0.r90v3aN_lf0Hrf7uyFll4ZQh29WGz8PQKNegBH8p1NY"
 # ============================================================
 
