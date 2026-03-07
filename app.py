@@ -1,6 +1,5 @@
 """
 VigInfec — Sistema de Vigilância de Infecção Hospitalar
-=======================================================
 pip install streamlit fpdf2 pandas plotly supabase Pillow
 streamlit run app.py
 """
@@ -13,375 +12,326 @@ from datetime import datetime, date
 from fpdf import FPDF
 import base64, io
 
-# ============================================================
+# ── Secrets / Config ─────────────────────────────────────────
 USE_SUPABASE = True
 try:
     SUPABASE_URL = st.secrets["SUPABASE_URL"]
     SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 except:
-    SUPABASE_URL = "https://juzyjqauwujtcsxgsogh.supabase.co"
-    SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1enlqcWF1d3VqdGNzeGdzb2doIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzE1MjUsImV4cCI6MjA4ODMwNzUyNX0.r90v3aN_lf0Hrf7uyFll4ZQh29WGz8PQKNegBH8p1NY"
-# ============================================================
+    SUPABASE_URL = "https://SEU_PROJETO.supabase.co"
+    SUPABASE_KEY = "SUA_CHAVE_ANON"
 
 if USE_SUPABASE:
     from supabase import create_client
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# ── Página ───────────────────────────────────────────────────
-st.set_page_config(
-    page_title="VigInfec",
-    page_icon="🏥",
-    layout="wide",
-    initial_sidebar_state="collapsed",
-)
+st.set_page_config(page_title="VigInfec", page_icon="🏥", layout="wide",
+                   initial_sidebar_state="collapsed")
 
 # ══════════════════════════════════════════════════════════════
-# CSS — Design Clínico Profissional
+# DESIGN SYSTEM
 # ══════════════════════════════════════════════════════════════
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-    --navy:    #0f2342;
-    --blue:    #1a3a6b;
-    --accent:  #2563eb;
-    --accent2: #3b82f6;
-    --red:     #dc2626;
-    --yellow:  #d97706;
-    --green:   #059669;
-    --red-bg:  #fef2f2;
-    --yel-bg:  #fffbeb;
-    --grn-bg:  #f0fdf4;
-    --gray-50: #f8fafc;
-    --gray-100:#f1f5f9;
-    --gray-200:#e2e8f0;
-    --gray-400:#94a3b8;
-    --gray-600:#475569;
-    --gray-800:#1e293b;
-    --white:   #ffffff;
-    --shadow:  0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
-    --shadow-lg: 0 4px 6px rgba(0,0,0,.07), 0 12px 32px rgba(0,0,0,.1);
-    --radius:  12px;
-    --radius-sm: 8px;
+  --c-navy:    #0d1f3c;
+  --c-blue:    #163d6e;
+  --c-accent:  #2461d4;
+  --c-red:     #e53e3e;
+  --c-amber:   #c07a1a;
+  --c-green:   #1a7a4a;
+  --c-red-bg:  #fff5f5;
+  --c-amb-bg:  #fffaf0;
+  --c-grn-bg:  #f0fff4;
+  --c-red-br:  #feb2b2;
+  --c-amb-br:  #fbd38d;
+  --c-grn-br:  #9ae6b4;
+  --c-bg:      #f7f8fc;
+  --c-surface: #ffffff;
+  --c-border:  #e4e8ef;
+  --c-muted:   #8a94a6;
+  --c-text:    #1a202c;
+  --c-text2:   #4a5568;
+  --shadow-s:  0 1px 2px rgba(0,0,0,.06), 0 2px 8px rgba(0,0,0,.05);
+  --shadow-m:  0 2px 4px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.08);
+  --r-sm: 6px; --r-md: 10px; --r-lg: 14px;
 }
 
-* { font-family: 'DM Sans', sans-serif !important; }
-code, .stCode { font-family: 'DM Mono', monospace !important; }
+/* ── RESET ────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
+.main .block-container  { padding: 0 !important; max-width: 100% !important; background: var(--c-bg); }
+section[data-testid="stSidebar"], header[data-testid="stHeader"],
+.stDeployButton, footer, #MainMenu { display: none !important; }
+.stApp { background: var(--c-bg) !important; }
 
-/* Reset streamlit defaults */
-.main .block-container { padding: 0 !important; max-width: 100% !important; }
-section[data-testid="stSidebar"] { display: none !important; }
-header[data-testid="stHeader"] { display: none !important; }
-.stDeployButton { display: none !important; }
-footer { display: none !important; }
+/* ── TOPBAR ────────────────────────────────── */
+.topbar {
+  background: var(--c-navy);
+  height: 52px; padding: 0 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.topbar-brand { color: #fff; font-size: .95rem; font-weight: 700; letter-spacing: -.2px; display: flex; align-items: center; gap: 8px; }
+.topbar-brand em { color: #60a5fa; font-style: normal; }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.topbar-setor {
+  background: rgba(96,165,250,.15); color: #93c5fd;
+  padding: 3px 10px; border-radius: 99px;
+  font-size: .7rem; font-weight: 600; letter-spacing: .4px; text-transform: uppercase;
+}
+.topbar-user { color: #94a3b8; font-size: .78rem; }
 
-/* ── TOP NAV ───────────────────────────── */
-.viginfec-nav {
-    background: var(--navy);
-    padding: 0 24px;
-    height: 56px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: sticky;
-    top: 0;
-    z-index: 999;
-    box-shadow: 0 2px 12px rgba(0,0,0,.2);
-}
-.nav-brand {
-    color: white;
-    font-size: 1.1rem;
-    font-weight: 700;
-    letter-spacing: -.3px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.nav-brand span { color: #60a5fa; }
-.nav-user {
-    color: #94a3b8;
-    font-size: .8rem;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-.nav-badge {
-    background: rgba(37,99,235,.3);
-    color: #93c5fd;
-    padding: 3px 10px;
-    border-radius: 99px;
-    font-size: .72rem;
-    font-weight: 600;
-    letter-spacing: .3px;
-    text-transform: uppercase;
+/* ── PAGE SHELL ────────────────────────────── */
+.page { padding: 20px 24px; max-width: 1100px; margin: 0 auto; }
+
+/* ── SECTION LABEL ─────────────────────────── */
+.slabel {
+  font-size: .65rem; font-weight: 700; letter-spacing: 1.1px;
+  text-transform: uppercase; color: var(--c-accent);
+  margin: 20px 0 8px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--c-border);
 }
 
-/* ── MAIN CONTENT ──────────────────────── */
-.page-wrap {
-    padding: 24px 20px;
-    max-width: 900px;
-    margin: 0 auto;
+/* ── SURFACE CARD ──────────────────────────── */
+.surf {
+  background: var(--c-surface); border: 1px solid var(--c-border);
+  border-radius: var(--r-lg); padding: 18px 20px;
+  box-shadow: var(--shadow-s); margin-bottom: 12px;
 }
 
-/* ── CARDS ─────────────────────────────── */
-.card {
-    background: var(--white);
-    border-radius: var(--radius);
-    border: 1px solid var(--gray-200);
-    padding: 20px;
-    margin-bottom: 16px;
-    box-shadow: var(--shadow);
+/* ── RISK BANNER ───────────────────────────── */
+.rbanner {
+  border-radius: var(--r-md); padding: 14px 18px;
+  display: flex; align-items: center; gap: 14px; margin: 12px 0;
 }
-.card-header {
-    font-size: .7rem;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: var(--gray-400);
-    margin-bottom: 12px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--gray-100);
+.rbanner.r-alto  { background: var(--c-red-bg); border: 1px solid var(--c-red-br); }
+.rbanner.r-medio { background: var(--c-amb-bg); border: 1px solid var(--c-amb-br); }
+.rbanner.r-baixo { background: var(--c-grn-bg); border: 1px solid var(--c-grn-br); }
+.rbanner-icon { font-size: 1.5rem; flex-shrink: 0; }
+.rbanner-score {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 2rem; font-weight: 700; line-height: 1; flex-shrink: 0;
 }
+.r-alto  .rbanner-score { color: var(--c-red); }
+.r-medio .rbanner-score { color: var(--c-amber); }
+.r-baixo .rbanner-score { color: var(--c-green); }
+.rbanner-body { flex: 1; }
+.rbanner-title { font-size: .95rem; font-weight: 700; color: var(--c-text); }
+.rbanner-sub   { font-size: .78rem; color: var(--c-text2); margin-top: 2px; }
 
-/* ── RISCO ALERTS ──────────────────────── */
-.alert {
-    border-radius: var(--radius);
-    padding: 16px 20px;
-    margin: 12px 0;
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
+/* ── METRIC ROW ────────────────────────────── */
+.mrow { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 18px; }
+@media(max-width:640px){ .mrow { grid-template-columns: repeat(2,1fr); } }
+.mcard {
+  background: var(--c-surface); border: 1px solid var(--c-border);
+  border-radius: var(--r-md); padding: 14px 16px;
+  box-shadow: var(--shadow-s); text-align: center;
 }
-.alert-alto   { background: var(--red-bg); border-left: 4px solid var(--red); }
-.alert-medio  { background: var(--yel-bg); border-left: 4px solid var(--yellow); }
-.alert-baixo  { background: var(--grn-bg); border-left: 4px solid var(--green); }
-.alert-icon   { font-size: 1.4rem; line-height: 1; margin-top: 2px; }
-.alert-title  { font-weight: 700; font-size: 1rem; margin-bottom: 2px; }
-.alert-sub    { font-size: .85rem; color: var(--gray-600); }
+.mcard-n { font-size: 1.9rem; font-weight: 700; line-height: 1.1; font-family: 'JetBrains Mono', monospace; }
+.mcard-l { font-size: .65rem; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; color: var(--c-muted); margin-top: 4px; }
+.mn-total { color: var(--c-navy); }
+.mn-alto  { color: var(--c-red); }
+.mn-medio { color: var(--c-amber); }
+.mn-baixo { color: var(--c-green); }
 
-/* ── METRIC CARDS ──────────────────────── */
-.metric-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    margin-bottom: 20px;
-}
-@media (max-width: 600px) {
-    .metric-grid { grid-template-columns: repeat(2, 1fr); }
-}
-.metric-card {
-    background: var(--white);
-    border: 1px solid var(--gray-200);
-    border-radius: var(--radius);
-    padding: 16px;
-    text-align: center;
-    box-shadow: var(--shadow);
-    transition: transform .15s, box-shadow .15s;
-}
-.metric-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
-.metric-num  { font-size: 1.8rem; font-weight: 700; line-height: 1; }
-.metric-lbl  { font-size: .72rem; color: var(--gray-400); margin-top: 4px; font-weight: 500; letter-spacing: .3px; text-transform: uppercase; }
-.metric-alto   .metric-num { color: var(--red); }
-.metric-medio  .metric-num { color: var(--yellow); }
-.metric-baixo  .metric-num { color: var(--green); }
-.metric-total  .metric-num { color: var(--navy); }
-
-/* ── HISTÓRICO CARDS ────────────────────── */
+/* ── HISTORY CARD ──────────────────────────── */
 .hcard {
-    background: var(--white);
-    border: 1px solid var(--gray-200);
-    border-radius: var(--radius);
-    padding: 16px 18px;
-    margin-bottom: 10px;
-    box-shadow: var(--shadow);
-    border-left: 4px solid var(--gray-200);
-    transition: box-shadow .15s;
+  background: var(--c-surface); border: 1px solid var(--c-border);
+  border-left: 3px solid var(--c-border);
+  border-radius: var(--r-md); padding: 14px 16px;
+  margin-bottom: 8px; box-shadow: var(--shadow-s);
+  transition: box-shadow .15s, transform .1s;
 }
-.hcard:hover { box-shadow: var(--shadow-lg); }
-.hcard-alto   { border-left-color: var(--red); }
-.hcard-medio  { border-left-color: var(--yellow); }
-.hcard-baixo  { border-left-color: var(--green); }
-.hcard-top    { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px; }
-.hcard-name   { font-size: 1rem; font-weight: 700; color: var(--gray-800); }
-.hcard-meta   { font-size: .78rem; color: var(--gray-400); margin-top: 3px; }
-.hcard-badge  { padding: 3px 10px; border-radius: 99px; font-size: .72rem; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; white-space: nowrap; }
-.badge-alto   { background: #fee2e2; color: var(--red); }
-.badge-medio  { background: #fef3c7; color: var(--yellow); }
-.badge-baixo  { background: #d1fae5; color: var(--green); }
-.hcard-chips  { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.hcard:hover { box-shadow: var(--shadow-m); transform: translateY(-1px); }
+.hcard.h-alto  { border-left-color: var(--c-red); }
+.hcard.h-medio { border-left-color: var(--c-amber); }
+.hcard.h-baixo { border-left-color: var(--c-green); }
+.hcard-row1 { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
+.hcard-name { font-size: .92rem; font-weight: 700; color: var(--c-text); }
+.hcard-meta { font-size: .72rem; color: var(--c-muted); margin-top: 2px; }
+.hbadge {
+  font-size: .67rem; font-weight: 700; padding: 2px 9px;
+  border-radius: 99px; letter-spacing: .3px; text-transform: uppercase; white-space: nowrap;
+}
+.hbadge.b-alto  { background: #fee2e2; color: #b91c1c; }
+.hbadge.b-medio { background: #fef3c7; color: #92400e; }
+.hbadge.b-baixo { background: #d1fae5; color: #065f46; }
+.hscore { font-size: .72rem; color: var(--c-muted); font-family: 'JetBrains Mono',monospace; text-align: right; margin-top: 3px; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
 .chip {
-    background: var(--gray-100);
-    color: var(--gray-600);
-    padding: 3px 9px;
-    border-radius: 99px;
-    font-size: .72rem;
-    font-weight: 500;
+  font-size: .68rem; padding: 2px 8px; border-radius: 99px;
+  background: var(--c-bg); border: 1px solid var(--c-border); color: var(--c-text2);
 }
-.chip-active { background: #dbeafe; color: var(--accent); }
+.chip.on { background: #eff6ff; border-color: #bfdbfe; color: var(--c-accent); }
 
-/* ── SECTION TITLE ─────────────────────── */
-.sec-title {
-    font-size: .7rem;
-    font-weight: 700;
-    letter-spacing: 1.2px;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin: 20px 0 10px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+/* ── SETOR OVERVIEW CARD ───────────────────── */
+.sov-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+@media(max-width:640px){ .sov-grid { grid-template-columns: 1fr; } }
+.sov-card {
+  background: var(--c-surface); border: 1px solid var(--c-border);
+  border-radius: var(--r-lg); padding: 16px; box-shadow: var(--shadow-s);
 }
-.sec-title::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--gray-200);
+.sov-name { font-size: .82rem; font-weight: 700; color: var(--c-navy); margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--c-border); }
+.sov-row  { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.sov-lbl  { font-size: .72rem; color: var(--c-text2); }
+.sov-val  { font-size: .72rem; font-weight: 700; font-family: 'JetBrains Mono',monospace; }
+.sov-bar-wrap { background: var(--c-bg); border-radius: 99px; height: 4px; margin-top: 8px; overflow: hidden; }
+.sov-bar      { height: 4px; border-radius: 99px; background: linear-gradient(90deg,#2461d4,#60a5fa); }
+.sov-alerta   { display: flex; align-items: center; gap: 5px; margin-top: 8px; font-size: .68rem; color: var(--c-red); font-weight: 600; }
+
+/* ── STREAMLIT WIDGET OVERRIDES ────────────── */
+div[data-testid="stForm"] { background: transparent !important; border: none !important; padding: 0 !important; box-shadow: none !important; }
+
+/* Inputs */
+.stTextInput > div > div > input,
+.stTextArea > div > div > textarea,
+div[data-baseweb="select"] > div:first-child {
+  border: 1px solid var(--c-border) !important;
+  border-radius: var(--r-sm) !important;
+  background: var(--c-surface) !important;
+  font-size: .86rem !important;
+  color: var(--c-text) !important;
+  padding: 7px 11px !important;
+  transition: border-color .15s, box-shadow .15s !important;
+}
+.stTextInput > div > div > input:focus,
+.stTextArea > div > div > textarea:focus {
+  border-color: var(--c-accent) !important;
+  box-shadow: 0 0 0 3px rgba(36,97,212,.1) !important;
+  outline: none !important;
 }
 
-/* ── SCORE RING ────────────────────────── */
-.score-display {
-    text-align: center;
-    padding: 20px;
+/* Labels */
+div[data-testid="stWidgetLabel"] > label,
+div[data-testid="stWidgetLabel"] > p {
+  font-size: .7rem !important;
+  font-weight: 600 !important;
+  letter-spacing: .3px !important;
+  text-transform: uppercase !important;
+  color: var(--c-text2) !important;
 }
-.score-num {
-    font-size: 3rem;
-    font-weight: 700;
-    line-height: 1;
-}
-.score-lbl { font-size: .75rem; color: var(--gray-400); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
 
-/* ── STREAMLIT OVERRIDES ───────────────── */
-div[data-testid="stForm"] {
-    background: transparent !important;
-    border: none !important;
-    padding: 0 !important;
-}
+/* Checkboxes */
+.stCheckbox { margin-bottom: 5px !important; }
 .stCheckbox > label {
-    background: var(--gray-50);
-    border: 1px solid var(--gray-200);
-    border-radius: var(--radius-sm);
-    padding: 8px 12px !important;
-    width: 100%;
-    font-size: .88rem !important;
-    transition: background .12s, border-color .12s;
-    cursor: pointer;
+  display: flex !important; align-items: center !important;
+  background: var(--c-bg) !important;
+  border: 1px solid var(--c-border) !important;
+  border-radius: var(--r-sm) !important;
+  padding: 8px 12px !important;
+  font-size: .83rem !important;
+  color: var(--c-text) !important;
+  cursor: pointer !important;
+  transition: background .12s, border-color .12s !important;
+  width: 100% !important;
 }
-.stCheckbox > label:hover { background: #eff6ff; border-color: var(--accent2); }
-div[data-testid="stCheckbox"] { margin-bottom: 6px !important; }
-.stTextInput input, .stTextArea textarea, .stSelectbox select,
-div[data-baseweb="select"] > div {
-    border-radius: var(--radius-sm) !important;
-    border-color: var(--gray-200) !important;
-    font-size: .9rem !important;
-    background: var(--white) !important;
+.stCheckbox > label:hover { background: #eff6ff !important; border-color: #93c5fd !important; }
+.stCheckbox input:checked + div + label,
+.stCheckbox input:checked ~ label {
+  background: #eff6ff !important;
+  border-color: var(--c-accent) !important;
+  color: var(--c-accent) !important;
+  font-weight: 600 !important;
 }
-.stTextInput input:focus, .stTextArea textarea:focus {
-    border-color: var(--accent) !important;
-    box-shadow: 0 0 0 3px rgba(37,99,235,.1) !important;
-}
+
+/* Number input */
 div[data-testid="stNumberInput"] input {
-    border-radius: var(--radius-sm) !important;
-    font-size: .9rem !important;
+  border: 1px solid var(--c-border) !important;
+  border-radius: var(--r-sm) !important;
+  font-size: .86rem !important;
 }
+
+/* Buttons */
 .stButton > button {
-    border-radius: var(--radius-sm) !important;
-    font-weight: 600 !important;
-    font-size: .88rem !important;
-    transition: all .15s !important;
+  border-radius: var(--r-sm) !important;
+  font-size: .82rem !important;
+  font-weight: 600 !important;
+  padding: 7px 16px !important;
+  transition: all .15s !important;
+  border: 1px solid var(--c-border) !important;
+  background: var(--c-surface) !important;
+  color: var(--c-text) !important;
 }
+.stButton > button:hover { border-color: var(--c-accent) !important; color: var(--c-accent) !important; background: #eff6ff !important; }
 .stButton > button[kind="primary"] {
-    background: var(--accent) !important;
-    border: none !important;
-    color: white !important;
+  background: var(--c-accent) !important;
+  border-color: var(--c-accent) !important;
+  color: #fff !important;
 }
 .stButton > button[kind="primary"]:hover {
-    background: #1d4ed8 !important;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(37,99,235,.3) !important;
+  background: #1a4fb5 !important;
+  border-color: #1a4fb5 !important;
+  box-shadow: 0 4px 12px rgba(36,97,212,.25) !important;
 }
-div[data-testid="stTabs"] button {
-    font-weight: 600 !important;
-    font-size: .85rem !important;
-    color: var(--gray-600) !important;
+
+/* Download button */
+.stDownloadButton > button {
+  border-radius: var(--r-sm) !important;
+  font-size: .82rem !important;
+  font-weight: 600 !important;
+  background: var(--c-navy) !important;
+  color: #fff !important;
+  border: none !important;
+  width: 100% !important;
 }
-div[data-testid="stTabs"] button[aria-selected="true"] {
-    color: var(--accent) !important;
+
+/* Tabs */
+div[data-testid="stTabs"] { border-bottom: 1px solid var(--c-border) !important; }
+div[data-testid="stTabs"] > div > div > button {
+  font-size: .8rem !important;
+  font-weight: 600 !important;
+  color: var(--c-muted) !important;
+  padding: 8px 14px !important;
+  border-radius: 0 !important;
+  border-bottom: 2px solid transparent !important;
 }
-.stSuccess, .stError, .stInfo, .stWarning {
-    border-radius: var(--radius-sm) !important;
-    font-size: .88rem !important;
+div[data-testid="stTabs"] > div > div > button[aria-selected="true"] {
+  color: var(--c-accent) !important;
+  border-bottom-color: var(--c-accent) !important;
 }
+
+/* Expander */
 div[data-testid="stExpander"] {
-    border: 1px solid var(--gray-200) !important;
-    border-radius: var(--radius) !important;
-    background: var(--white) !important;
+  border: 1px solid var(--c-border) !important;
+  border-radius: var(--r-md) !important;
+  background: var(--c-surface) !important;
+  box-shadow: none !important;
 }
-label[data-testid="stWidgetLabel"] {
-    font-size: .8rem !important;
-    font-weight: 600 !important;
-    color: var(--gray-600) !important;
-    letter-spacing: .2px !important;
-    text-transform: uppercase !important;
-    margin-bottom: 4px !important;
+div[data-testid="stExpander"] summary {
+  font-size: .8rem !important;
+  font-weight: 600 !important;
+  color: var(--c-text2) !important;
 }
 
-/* ── LOGIN ─────────────────────────────── */
-.login-wrap {
-    min-height: 100vh;
-    background: linear-gradient(135deg, #0f2342 0%, #1a3a6b 50%, #0f2342 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-}
-.login-card {
-    background: white;
-    border-radius: 20px;
-    padding: 40px;
-    width: 100%;
-    max-width: 400px;
-    box-shadow: 0 24px 64px rgba(0,0,0,.25);
-}
-.login-logo {
-    text-align: center;
-    margin-bottom: 28px;
-}
-.login-logo-icon {
-    width: 60px; height: 60px;
-    background: var(--navy);
-    border-radius: 16px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.8rem;
-    margin-bottom: 12px;
-}
-.login-title { font-size: 1.4rem; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
-.login-sub   { font-size: .85rem; color: var(--gray-400); }
+/* Alerts */
+div[data-testid="stAlert"] { border-radius: var(--r-sm) !important; font-size: .82rem !important; }
 
-/* ── DIVIDER ───────────────────────────── */
-.divider { height: 1px; background: var(--gray-200); margin: 16px 0; }
-
-/* ── EMPTY STATE ───────────────────────── */
-.empty-state {
-    text-align: center;
-    padding: 48px 20px;
-    color: var(--gray-400);
+/* File uploader */
+div[data-testid="stFileUploader"] {
+  border: 1.5px dashed var(--c-border) !important;
+  border-radius: var(--r-md) !important;
+  background: var(--c-bg) !important;
+  padding: 12px !important;
 }
-.empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
-.empty-text { font-size: .95rem; }
+
+/* Divider */
+hr { border: none !important; border-top: 1px solid var(--c-border) !important; margin: 16px 0 !important; }
+
+/* Info/success/error */
+.stSuccess, .stError, .stInfo, .stWarning { border-radius: var(--r-sm) !important; font-size: .82rem !important; }
 </style>
 """, unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════
-# DADOS E CONFIGURAÇÕES
+# DADOS
 # ══════════════════════════════════════════════════════════════
-SETORES = [
-    "UTI Geral","UTI 1","UTI 2","UTI AVC",
-    "Area Laranja","Area Vermelha",
-    "Internacao A","Internacao B","Internacao C",
-]
+SETORES = ["UTI Geral","UTI 1","UTI 2","UTI AVC",
+           "Area Laranja","Area Vermelha",
+           "Internacao A","Internacao B","Internacao C"]
 
 FATORES_POR_SETOR = {
     "UTI Geral":     ["cateter","ventilacao","cirurgia_recente","imunossuprimido","antibiotico","febre","secrecao","sedacao","nutricao_enteral"],
@@ -395,55 +345,37 @@ FATORES_POR_SETOR = {
     "Internacao C":  ["cateter","cirurgia_recente","imunossuprimido","antibiotico","febre","secrecao","sonda_vesical"],
 }
 
-LABELS_FATORES = {
-    "cateter":          "Cateter Venoso Central",
-    "ventilacao":       "Ventilação Mecânica",
-    "cirurgia_recente": "Cirurgia < 30 dias",
-    "imunossuprimido":  "Imunossupressão",
-    "antibiotico":      "Em uso de Antibiótico",
-    "febre":            "Febre > 38°C",
-    "secrecao":         "Secreção Anormal",
-    "sedacao":          "Sedação Contínua",
-    "nutricao_enteral": "Nutrição Enteral",
-    "disfagia":         "Disfagia",
-    "sonda_vesical":    "Sonda Vesical",
-    "dreno":            "Dreno Cirúrgico",
+LABELS = {
+    "cateter":"Cateter Venoso Central","ventilacao":"Ventilação Mecânica",
+    "cirurgia_recente":"Cirurgia < 30 dias","imunossuprimido":"Imunossupressão",
+    "antibiotico":"Antibiótico","febre":"Febre > 38°C","secrecao":"Secreção Anormal",
+    "sedacao":"Sedação Contínua","nutricao_enteral":"Nutrição Enteral",
+    "disfagia":"Disfagia","sonda_vesical":"Sonda Vesical","dreno":"Dreno Cirúrgico",
 }
-
-ICONS_FATORES = {
+ICONS = {
     "cateter":"💉","ventilacao":"🫁","cirurgia_recente":"🩹","imunossuprimido":"🛡️",
     "antibiotico":"💊","febre":"🌡️","secrecao":"🔬","sedacao":"💤",
     "nutricao_enteral":"🥤","disfagia":"🗣️","sonda_vesical":"🔵","dreno":"🩸",
 }
-
 PESOS = {
     "cateter":4,"ventilacao":4,"cirurgia_recente":3,"imunossuprimido":3,
     "antibiotico":2,"febre":2,"secrecao":2,"sedacao":2,
     "nutricao_enteral":1,"disfagia":1,"sonda_vesical":2,"dreno":2,
     "dias_cateter_bonus":0.3,"dias_ventilacao_bonus":0.4,
 }
-
-OPCOES_OBSERVACAO = [
-    "Sem intercorrencias",
-    "Sinais de infeccao no sitio",
-    "Febre persistente em investigacao",
-    "Paciente imunossuprimido em observacao",
-    "Aguardando resultado de cultura",
-    "Em uso de antibiotico de amplo espectro",
-    "Dispositivo com sinais de flebite",
-    "Outro (ver descricao livre)",
+OBS_OPCOES = [
+    "Sem intercorrencias","Sinais de infeccao no sitio",
+    "Febre persistente em investigacao","Paciente imunossuprimido em observacao",
+    "Aguardando resultado de cultura","Em uso de antibiotico de amplo espectro",
+    "Dispositivo com sinais de flebite","Outro (ver descricao livre)",
 ]
 
-# ── Session State ────────────────────────────────────────────
-defaults = {
-    "logado":False,"usuario_email":"","usuario_nome":"","usuario_setor":"",
-    "avaliacoes":[],"contador":1,"editando_id":None,"tab_ativa":"nova",
-}
-for k,v in defaults.items():
-    if k not in st.session_state:
-        st.session_state[k] = v
+# ── Session state ─────────────────────────────────────────────
+for k,v in [("logado",False),("usuario_email",""),("usuario_nome",""),
+            ("usuario_setor",""),("avaliacoes",[]),("contador",1),("editando_id",None)]:
+    if k not in st.session_state: st.session_state[k] = v
 
-MOCK_INICIAL = [
+MOCK = [
     {"id":1,"paciente":"Maria Santos","leito":"L-01","data":"2026-03-01","score":18,"risco":"Alto",
      "setor":"UTI Geral","cateter":True,"ventilacao":True,"cirurgia_recente":True,"imunossuprimido":False,
      "antibiotico":True,"febre":True,"secrecao":True,"sedacao":True,"nutricao_enteral":False,
@@ -465,38 +397,43 @@ MOCK_INICIAL = [
      "dias_cateter":0,"dias_ventilacao":0,"medicacao":"","temperatura":"",
      "avaliador":"Enf. Demo","observacao_tipo":"Sem intercorrencias",
      "observacao_livre":"","prontuario_nome":"","prontuario_b64":""},
+    {"id":4,"paciente":"Carlos Melo","leito":"L-05","data":"2026-03-04","score":14,"risco":"Alto",
+     "setor":"UTI AVC","cateter":True,"ventilacao":False,"cirurgia_recente":False,"imunossuprimido":True,
+     "antibiotico":True,"febre":True,"secrecao":False,"sedacao":False,"nutricao_enteral":False,
+     "disfagia":True,"sonda_vesical":True,"dreno":False,
+     "dias_cateter":6,"dias_ventilacao":0,"medicacao":"Meropenem 1g EV 8/8h",
+     "temperatura":"39.1","avaliador":"Enf. Demo","observacao_tipo":"Febre persistente em investigacao",
+     "observacao_livre":"","prontuario_nome":"","prontuario_b64":""},
 ]
 if not st.session_state.avaliacoes:
-    st.session_state.avaliacoes = MOCK_INICIAL.copy()
-    st.session_state.contador = 4
+    st.session_state.avaliacoes = MOCK.copy()
+    st.session_state.contador = 5
 
 # ══════════════════════════════════════════════════════════════
 # HELPERS
 # ══════════════════════════════════════════════════════════════
-def risco_info(risco: str):
+def risco_meta(risco):
     r = str(risco).lower()
-    if "alto"  in r: return "Alto",  "alto",  "🔴", "#dc2626"
-    if "med"   in r: return "Médio", "medio", "🟡", "#d97706"
-    return "Baixo", "baixo", "🟢", "#059669"
+    if "alto"  in r: return "Alto",  "alto",  "🔴", "#e53e3e"
+    if "med"   in r: return "Médio", "medio", "🟡", "#c07a1a"
+    return "Baixo", "baixo", "🟢", "#1a7a4a"
 
-def calcular_score(dados):
+def calcular_score(d):
     s = 0
-    for campo, peso in PESOS.items():
-        if campo.endswith("_bonus"): continue
-        if dados.get(campo): s += peso
-    if dados.get("cateter") and dados.get("dias_cateter",0) > 3:
-        s += int((dados["dias_cateter"]-3)*PESOS["dias_cateter_bonus"])
-    if dados.get("ventilacao") and dados.get("dias_ventilacao",0) > 2:
-        s += int((dados["dias_ventilacao"]-2)*PESOS["dias_ventilacao_bonus"])
+    for c,p in PESOS.items():
+        if c.endswith("_bonus"): continue
+        if d.get(c): s += p
+    if d.get("cateter")   and d.get("dias_cateter",0)   > 3: s += int((d["dias_cateter"]-3)*PESOS["dias_cateter_bonus"])
+    if d.get("ventilacao") and d.get("dias_ventilacao",0) > 2: s += int((d["dias_ventilacao"]-2)*PESOS["dias_ventilacao_bonus"])
     return s
 
-def classificar_risco(score):
-    if score >= 14: return "Alto",  "alert-alto"
-    if score >= 7:  return "Medio", "alert-medio"
-    return "Baixo", "alert-baixo"
+def classificar(score):
+    if score >= 14: return "Alto"
+    if score >= 7:  return "Medio"
+    return "Baixo"
 
 # ══════════════════════════════════════════════════════════════
-# AUTENTICAÇÃO
+# AUTH
 # ══════════════════════════════════════════════════════════════
 def fazer_login(email, senha):
     if USE_SUPABASE:
@@ -506,9 +443,8 @@ def fazer_login(email, senha):
             return True, meta.get("nome",email.split("@")[0].title()), meta.get("setor",SETORES[0])
         except Exception as e:
             return False, str(e), ""
-    else:
-        if email and senha: return True, email.split("@")[0].title(), SETORES[0]
-        return False, "Preencha email e senha.", ""
+    if email and senha: return True, email.split("@")[0].title(), SETORES[0]
+    return False, "Preencha os campos.", ""
 
 def fazer_logout():
     if USE_SUPABASE:
@@ -517,548 +453,516 @@ def fazer_logout():
     for k in ["logado","usuario_email","usuario_nome","usuario_setor"]:
         st.session_state[k] = False if k=="logado" else ""
 
-# ── TELA DE LOGIN ─────────────────────────────────────────────
+# ── LOGIN ─────────────────────────────────────────────────────
 if not st.session_state.logado:
     st.markdown("""
-    <div style="min-height:100vh;background:linear-gradient(135deg,#0f2342 0%,#1a3a6b 60%,#0f2342 100%);
-    display:flex;align-items:center;justify-content:center;padding:20px;">
-    </div>""", unsafe_allow_html=True)
+    <div style="min-height:100vh;background:linear-gradient(160deg,#0d1f3c 0%,#163d6e 100%);
+    display:flex;align-items:center;justify-content:center;padding:20px;position:fixed;
+    inset:0;z-index:9999;"></div>""", unsafe_allow_html=True)
 
-    _, col, _ = st.columns([1, 1.1, 1])
+    _, col, _ = st.columns([1,1,1])
     with col:
         st.markdown("""
-        <div style="background:white;border-radius:20px;padding:36px 32px;
-        box-shadow:0 24px 64px rgba(0,0,0,.3);margin-top:60px;">
-            <div style="text-align:center;margin-bottom:24px;">
-                <div style="width:56px;height:56px;background:#0f2342;border-radius:14px;
-                display:inline-flex;align-items:center;justify-content:center;font-size:1.6rem;margin-bottom:10px;">🏥</div>
-                <div style="font-size:1.4rem;font-weight:700;color:#0f2342;font-family:'DM Sans',sans-serif;">VigInfec</div>
-                <div style="font-size:.82rem;color:#94a3b8;margin-top:2px;">Vigilância de Infecção Hospitalar</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        <div style="background:#fff;border-radius:16px;padding:36px 32px 28px;
+        box-shadow:0 20px 60px rgba(0,0,0,.28);margin-top:80px;">
+          <div style="text-align:center;margin-bottom:24px;">
+            <div style="width:52px;height:52px;background:#0d1f3c;border-radius:12px;
+            display:inline-flex;align-items:center;justify-content:center;
+            font-size:1.5rem;margin-bottom:10px;">🏥</div>
+            <div style="font-size:1.3rem;font-weight:700;color:#0d1f3c;letter-spacing:-.3px;">VigInfec</div>
+            <div style="font-size:.78rem;color:#8a94a6;margin-top:2px;">Vigilância de Infecção Hospitalar</div>
+          </div>
+        </div>""", unsafe_allow_html=True)
 
-        with st.form("login"):
-            email = st.text_input("E-mail", placeholder="seu@hospital.com")
+        with st.form("login_form"):
+            email = st.text_input("E-mail", placeholder="enfermeiro@hospital.com")
             senha = st.text_input("Senha", type="password", placeholder="••••••••")
-            ok_btn = st.form_submit_button("Entrar →", use_container_width=True, type="primary")
+            btn   = st.form_submit_button("Entrar →", use_container_width=True, type="primary")
 
-        if ok_btn:
-            if not email or not senha:
-                st.error("Preencha e-mail e senha.")
+        if btn:
+            if not email or not senha: st.error("Preencha todos os campos.")
             else:
                 ok, nome, setor = fazer_login(email, senha)
                 if ok:
-                    st.session_state.logado        = True
-                    st.session_state.usuario_email = email
-                    st.session_state.usuario_nome  = nome
-                    st.session_state.usuario_setor = setor
+                    st.session_state.update(logado=True, usuario_email=email,
+                                            usuario_nome=nome, usuario_setor=setor)
                     st.rerun()
-                else:
-                    st.error(f"Credenciais inválidas")
+                else: st.error("Credenciais inválidas.")
 
         if not USE_SUPABASE:
             st.caption("🧪 Modo simulação — qualquer credencial funciona")
     st.stop()
 
 # ══════════════════════════════════════════════════════════════
-# FUNÇÕES DE DADOS
+# DADOS
 # ══════════════════════════════════════════════════════════════
-def salvar_avaliacao(dados):
+def salvar(d):
     if USE_SUPABASE:
-        payload = {k:v for k,v in dados.items() if k!="id"}
-        supabase.table("avaliacoes").insert(payload).execute()
+        supabase.table("avaliacoes").insert({k:v for k,v in d.items() if k!="id"}).execute()
     else:
-        dados["id"] = st.session_state.contador
-        st.session_state.contador += 1
-        st.session_state.avaliacoes.append(dados)
+        d["id"] = st.session_state.contador; st.session_state.contador += 1
+        st.session_state.avaliacoes.append(d)
 
-def atualizar_avaliacao(av_id, dados):
+def atualizar(av_id, d):
     if USE_SUPABASE:
-        payload = {k:v for k,v in dados.items() if k!="id"}
-        supabase.table("avaliacoes").update(payload).eq("id",av_id).execute()
+        supabase.table("avaliacoes").update({k:v for k,v in d.items() if k!="id"}).eq("id",av_id).execute()
     else:
         for i,a in enumerate(st.session_state.avaliacoes):
-            if a["id"]==av_id:
-                dados["id"]=av_id
-                st.session_state.avaliacoes[i]=dados; break
+            if a["id"]==av_id: d["id"]=av_id; st.session_state.avaliacoes[i]=d; break
 
-def carregar_avaliacoes():
+def carregar():
     if USE_SUPABASE:
-        res = supabase.table("avaliacoes").select("*").order("data",desc=True).execute()
-        return res.data
+        return supabase.table("avaliacoes").select("*").order("data",desc=True).execute().data
     return list(reversed(st.session_state.avaliacoes))
 
-def deletar_avaliacao(av_id):
-    if USE_SUPABASE:
-        supabase.table("avaliacoes").delete().eq("id",av_id).execute()
-    else:
-        st.session_state.avaliacoes = [a for a in st.session_state.avaliacoes if a["id"]!=av_id]
+def deletar(av_id):
+    if USE_SUPABASE: supabase.table("avaliacoes").delete().eq("id",av_id).execute()
+    else: st.session_state.avaliacoes = [a for a in st.session_state.avaliacoes if a["id"]!=av_id]
 
 # ══════════════════════════════════════════════════════════════
 # PDF
 # ══════════════════════════════════════════════════════════════
-def limpar_pdf(texto) -> str:
-    if not texto: return "-"
-    texto = str(texto)
-    mapa = {
-        "\u2014":"-","\u2013":"-","\u00e9":"e","\u00ea":"e","\u00e1":"a","\u00e0":"a",
-        "\u00e3":"a","\u00e2":"a","\u00ed":"i","\u00f3":"o","\u00f4":"o","\u00f5":"o",
-        "\u00fa":"u","\u00fb":"u","\u00e7":"c","\u00c9":"E","\u00c1":"A","\u00c3":"A",
-        "\u00cd":"I","\u00d3":"O","\u00d5":"O","\u00da":"U","\u00c7":"C","\u00b0":" graus",
-    }
-    for o,s in mapa.items(): texto=texto.replace(o,s)
-    return ''.join(c for c in texto if ord(c)<128)
+def lp(t):
+    if not t: return "-"
+    t = str(t)
+    for o,s in {"\u2014":"-","\u2013":"-","\u00e9":"e","\u00ea":"e","\u00e1":"a","\u00e0":"a",
+                "\u00e3":"a","\u00e2":"a","\u00ed":"i","\u00f3":"o","\u00f4":"o","\u00f5":"o",
+                "\u00fa":"u","\u00fb":"u","\u00e7":"c","\u00c9":"E","\u00c1":"A","\u00c3":"A",
+                "\u00cd":"I","\u00d3":"O","\u00d5":"O","\u00da":"U","\u00c7":"C","\u00b0":" graus"}.items():
+        t = t.replace(o,s)
+    return ''.join(c for c in t if ord(c)<128)
 
-def gerar_pdf(dados):
+def gerar_pdf(d):
     pdf = FPDF(); pdf.add_page(); pdf.set_margins(20,20,20)
-    pdf.set_fill_color(15,35,66); pdf.rect(0,0,210,30,"F")
-    pdf.set_font("Helvetica","B",15); pdf.set_text_color(255,255,255)
-    pdf.set_y(7); pdf.cell(0,10,"SISTEMA DE VIGILANCIA DE INFECCAO HOSPITALAR",align="C",ln=True)
-    pdf.set_font("Helvetica","",9)
-    pdf.cell(0,6,"Relatorio de Avaliacao de Risco - VigInfec",align="C",ln=True)
-    pdf.set_text_color(0,0,0); pdf.set_y(36)
+    # Header
+    pdf.set_fill_color(13,31,60); pdf.rect(0,0,210,28,"F")
+    pdf.set_font("Helvetica","B",14); pdf.set_text_color(255,255,255)
+    pdf.set_y(6); pdf.cell(0,9,"SISTEMA DE VIGILANCIA DE INFECCAO HOSPITALAR",align="C",ln=True)
+    pdf.set_font("Helvetica","",8); pdf.cell(0,5,"Relatorio de Avaliacao de Risco  -  VigInfec",align="C",ln=True)
+    pdf.set_text_color(0,0,0); pdf.set_y(34)
 
-    def secao(titulo):
-        pdf.set_font("Helvetica","B",10); pdf.set_fill_color(241,245,249)
-        pdf.cell(0,7,f"  {titulo}",ln=True,fill=True); pdf.ln(2)
+    def h2(t):
+        pdf.set_font("Helvetica","B",9); pdf.set_fill_color(241,245,249)
+        pdf.cell(0,7,f"  {t}",ln=True,fill=True); pdf.ln(1)
 
-    def campo(label,valor,cor=None):
-        pdf.set_font("Helvetica","B",9); pdf.cell(52,6,f"  {label}:",border=0)
-        pdf.set_font("Helvetica","",9)
-        if cor: pdf.set_text_color(*cor); pdf.set_font("Helvetica","B",9)
-        pdf.cell(0,6,limpar_pdf(valor),ln=True); pdf.set_text_color(0,0,0)
+    def row(lbl,val,bold_val=False,cor=None):
+        pdf.set_font("Helvetica","B",8); pdf.cell(48,5.5,f"  {lbl}:",border=0)
+        if cor: pdf.set_text_color(*cor)
+        pdf.set_font("Helvetica","B" if bold_val else "",8)
+        pdf.cell(0,5.5,lp(val),ln=True)
+        pdf.set_text_color(0,0,0)
 
-    risco = dados.get("risco","Baixo")
-    rl,_,_,_ = risco_info(risco)
-    cor_risco = (220,38,38) if "alto" in risco.lower() else (202,138,4) if "med" in risco.lower() else (22,163,74)
+    rl,_,_,_ = risco_meta(d.get("risco","Baixo"))
+    cr = (229,62,62) if "alto" in str(d.get("risco","")).lower() else (192,122,26) if "med" in str(d.get("risco","")).lower() else (26,122,74)
 
-    secao("IDENTIFICACAO")
-    campo("Paciente",    dados.get("paciente","-"))
-    campo("Leito",       dados.get("leito","-"))
-    campo("Setor",       dados.get("setor","-"))
-    campo("Data",        str(dados.get("data",date.today())))
-    campo("Avaliador",   dados.get("avaliador","-"))
-    campo("Score",       str(dados.get("score","-")))
-    campo("Classificacao", rl, cor=cor_risco)
+    h2("IDENTIFICACAO")
+    row("Paciente",   d.get("paciente","-"))
+    row("Leito",      d.get("leito","-"))
+    row("Setor",      d.get("setor","-"))
+    row("Data",       str(d.get("data",date.today())))
+    row("Avaliador",  d.get("avaliador","-"))
+    row("Score",      str(d.get("score","-")))
+    row("Risco",      rl, bold_val=True, cor=cr)
     pdf.ln(3)
 
-    secao("FATORES DE RISCO")
-    setor     = dados.get("setor","UTI Geral")
-    fat_list  = FATORES_POR_SETOR.get(setor, list(LABELS_FATORES.keys()))
-    for campo_f in fat_list:
-        presente = dados.get(campo_f,False)
-        cor_f    = (220,38,38) if presente else (148,163,184)
-        pdf.set_text_color(*cor_f)
-        status = "[SIM]" if presente else "[NAO]"
-        label_f = limpar_pdf(LABELS_FATORES.get(campo_f,campo_f))
-        extra   = ""
-        if campo_f=="cateter"   and presente and dados.get("dias_cateter",0):   extra=f" (D{dados['dias_cateter']})"
-        if campo_f=="ventilacao" and presente and dados.get("dias_ventilacao",0): extra=f" (D{dados['dias_ventilacao']})"
-        pdf.set_font("Helvetica","",9)
-        pdf.cell(0,6,f"  {status}  {label_f}{extra}",ln=True)
+    h2("FATORES DE RISCO")
+    setor  = d.get("setor","UTI Geral")
+    for c in FATORES_POR_SETOR.get(setor,list(LABELS.keys())):
+        pres = d.get(c,False)
+        pdf.set_text_color(*(229,62,62) if pres else (138,148,166))
+        pdf.set_font("Helvetica","",8)
+        ex = ""
+        if c=="cateter"   and pres and d.get("dias_cateter",0):   ex=f" (D{d['dias_cateter']})"
+        if c=="ventilacao" and pres and d.get("dias_ventilacao",0): ex=f" (D{d['dias_ventilacao']})"
+        pdf.cell(0,5.5,f"  {'[SIM]' if pres else '[NAO]'}  {lp(LABELS.get(c,c))}{ex}",ln=True)
     pdf.set_text_color(0,0,0)
 
-    if dados.get("medicacao"):
-        pdf.ln(2); pdf.set_font("Helvetica","B",9)
-        pdf.cell(52,6,"  Medicacao:",border=0)
-        pdf.set_font("Helvetica","",9)
-        pdf.multi_cell(0,6,limpar_pdf(dados["medicacao"]))
-
-    if dados.get("febre") and dados.get("temperatura"):
-        pdf.set_font("Helvetica","B",9); pdf.cell(52,6,"  Temperatura:",border=0)
-        pdf.set_font("Helvetica","",9)
-        pdf.cell(0,6,f"{limpar_pdf(dados['temperatura'])} graus C",ln=True)
-
+    if d.get("medicacao"): pdf.ln(1); row("Medicacao", d["medicacao"])
+    if d.get("febre") and d.get("temperatura"): row("Temperatura", f"{d['temperatura']} graus C")
     pdf.ln(3)
 
-    obs_tipo  = limpar_pdf(dados.get("observacao_tipo",""))
-    obs_livre = limpar_pdf(dados.get("observacao_livre",""))
-    if (obs_tipo and obs_tipo!="-") or (obs_livre and obs_livre!="-"):
-        secao("OBSERVACOES")
-        if obs_tipo and obs_tipo!="-":
-            pdf.set_font("Helvetica","B",9); pdf.cell(52,6,"  Situacao:",border=0)
-            pdf.set_font("Helvetica","",9); pdf.multi_cell(0,6,obs_tipo)
-        if obs_livre and obs_livre!="-":
-            pdf.set_font("Helvetica","B",9); pdf.cell(0,6,"  Descricao:",ln=True)
-            pdf.set_font("Helvetica","",9)
-            pdf.set_fill_color(248,250,252)
-            pdf.multi_cell(0,5,f"  {obs_livre}",fill=True)
+    ot = lp(d.get("observacao_tipo",""))
+    ol = lp(d.get("observacao_livre",""))
+    if (ot and ot!="-") or (ol and ol!="-"):
+        h2("OBSERVACOES")
+        if ot and ot!="-": row("Situacao",ot)
+        if ol and ol!="-":
+            pdf.set_font("Helvetica","B",8); pdf.cell(0,5.5,"  Descricao:",ln=True)
+            pdf.set_font("Helvetica","",8); pdf.set_fill_color(247,248,252)
+            pdf.multi_cell(0,5,f"  {ol}",fill=True)
         pdf.ln(3)
 
-    if dados.get("prontuario_b64"):
+    if d.get("prontuario_b64"):
         try:
-            secao("ANEXO - PRONTUARIO")
-            img_bytes = base64.b64decode(dados["prontuario_b64"])
-            ext = (dados.get("prontuario_nome","img.jpg")).split(".")[-1].lower()
+            h2("ANEXO - PRONTUARIO")
+            ext  = (d.get("prontuario_nome","img.jpg")).split(".")[-1].lower()
             tipo = {"jpg":"JPEG","jpeg":"JPEG","png":"PNG"}.get(ext,"JPEG")
-            pdf.image(io.BytesIO(img_bytes), x=20, w=170, type=tipo)
+            pdf.image(io.BytesIO(base64.b64decode(d["prontuario_b64"])), x=20, w=170, type=tipo)
         except: pass
 
-    pdf.set_y(-26); pdf.set_draw_color(15,35,66)
-    pdf.line(20,pdf.get_y(),190,pdf.get_y()); pdf.ln(2)
-    pdf.set_font("Helvetica","I",7); pdf.set_text_color(148,163,184)
-    pdf.cell(0,4,f"Gerado em {datetime.now().strftime('%d/%m/%Y as %H:%M')}  |  Avaliador: {limpar_pdf(dados.get('avaliador','-'))}  |  Setor: {limpar_pdf(dados.get('setor','-'))}  |  VigInfec",align="C",ln=True)
+    pdf.set_y(-24); pdf.set_draw_color(13,31,60); pdf.line(20,pdf.get_y(),190,pdf.get_y()); pdf.ln(2)
+    pdf.set_font("Helvetica","I",7); pdf.set_text_color(138,148,166)
+    pdf.cell(0,4,f"Gerado em {datetime.now().strftime('%d/%m/%Y as %H:%M')}  |  Avaliador: {lp(d.get('avaliador','-'))}  |  Setor: {lp(d.get('setor','-'))}  |  VigInfec",align="C",ln=True)
     pdf.cell(0,4,"Instrumento de apoio clinico. Decisoes devem ser validadas por profissional habilitado.",align="C")
     return pdf.output()
 
 # ══════════════════════════════════════════════════════════════
 # FORMULÁRIO
 # ══════════════════════════════════════════════════════════════
-def renderizar_formulario(prefixo, dados_iniciais=None):
-    d = dados_iniciais or {}
+def formulario(pfx, di=None):
+    d     = di or {}
     setor = st.session_state.usuario_setor or SETORES[0]
-    fatores = FATORES_POR_SETOR.get(setor, list(LABELS_FATORES.keys()))
+    fats  = FATORES_POR_SETOR.get(setor, list(LABELS.keys()))
 
-    with st.form(f"form_{prefixo}", clear_on_submit=(prefixo=="novo")):
-
-        st.markdown('<div class="sec-title">👤 Identificação</div>', unsafe_allow_html=True)
-        c1, c2 = st.columns([2,1])
-        with c1: paciente = st.text_input("Nome do Paciente", value=d.get("paciente",""), placeholder="Nome completo")
-        with c2: leito    = st.text_input("Leito", value=d.get("leito",""), placeholder="Ex: UTI-01")
-
-        c3, c4 = st.columns([1,1])
+    with st.form(f"f_{pfx}", clear_on_submit=(pfx=="novo")):
+        st.markdown('<div class="slabel">Identificação do Paciente</div>', unsafe_allow_html=True)
+        c1,c2 = st.columns([2,1])
+        with c1: pac  = st.text_input("Nome do Paciente", value=d.get("paciente",""), placeholder="Nome completo")
+        with c2: leito= st.text_input("Leito", value=d.get("leito",""), placeholder="Ex: UTI-01")
+        c3,c4 = st.columns(2)
         with c3:
-            try: dval = date.fromisoformat(str(d.get("data",date.today())))
-            except: dval = date.today()
-            data_av = st.date_input("Data da Avaliação", value=dval)
-        with c4:
-            st.text_input("Setor", value=setor, disabled=True)
+            try: dv = date.fromisoformat(str(d.get("data",date.today())))
+            except: dv = date.today()
+            dtav = st.date_input("Data", value=dv)
+        with c4: st.text_input("Setor", value=setor, disabled=True)
 
-        st.markdown(f'<div class="sec-title">⚠️ Fatores de Risco — {setor}</div>', unsafe_allow_html=True)
-
-        valores = {}
+        st.markdown(f'<div class="slabel">Fatores de Risco — {setor}</div>', unsafe_allow_html=True)
+        vals = {}
         cols = st.columns(2)
-        for i, campo in enumerate(fatores):
-            with cols[i % 2]:
-                icon = ICONS_FATORES.get(campo,"")
-                valores[campo] = st.checkbox(
-                    f"{icon} {LABELS_FATORES.get(campo,campo)}",
-                    value=bool(d.get(campo,False)),
-                    key=f"{prefixo}_{campo}"
-                )
+        for i,c in enumerate(fats):
+            with cols[i%2]:
+                vals[c] = st.checkbox(f"{ICONS.get(c,'')} {LABELS.get(c,c)}", value=bool(d.get(c,False)), key=f"{pfx}_{c}")
 
-        dias_cateter = dias_ventilacao = 0
-        if valores.get("cateter") or valores.get("ventilacao"):
-            st.markdown('<div class="sec-title">📅 Dias de Uso</div>', unsafe_allow_html=True)
-            dc1, dc2 = st.columns(2)
+        dias_cat = dias_vent = 0
+        if vals.get("cateter") or vals.get("ventilacao"):
+            st.markdown('<div class="slabel">Dias de Uso do Dispositivo</div>', unsafe_allow_html=True)
+            dc1,dc2 = st.columns(2)
             with dc1:
-                if valores.get("cateter"):
-                    dias_cateter = st.number_input("Dias com CVC", min_value=0, max_value=365,
-                                                    value=int(d.get("dias_cateter",0)), key=f"{prefixo}_dc")
+                if vals.get("cateter"):
+                    dias_cat = st.number_input("Dias com CVC", 0, 365, int(d.get("dias_cateter",0)), key=f"{pfx}_dc")
             with dc2:
-                if valores.get("ventilacao"):
-                    dias_ventilacao = st.number_input("Dias de VM", min_value=0, max_value=365,
-                                                       value=int(d.get("dias_ventilacao",0)), key=f"{prefixo}_dv")
+                if vals.get("ventilacao"):
+                    dias_vent = st.number_input("Dias de VM", 0, 365, int(d.get("dias_ventilacao",0)), key=f"{pfx}_dv")
 
-        medicacao = ""
-        if valores.get("antibiotico"):
-            st.markdown('<div class="sec-title">💊 Medicação</div>', unsafe_allow_html=True)
-            medicacao = st.text_input(
-                "Medicação em uso",
-                value=d.get("medicacao",""),
-                placeholder="Ex: Vancomicina 1g EV 12/12h",
-                key=f"{prefixo}_med"
-            )
+        med = temp = ""
+        if vals.get("antibiotico"):
+            st.markdown('<div class="slabel">Medicação em Uso</div>', unsafe_allow_html=True)
+            med = st.text_input("Descreva a medicação", value=d.get("medicacao",""),
+                                placeholder="Ex: Vancomicina 1g EV 12/12h", key=f"{pfx}_med")
+        if vals.get("febre"):
+            st.markdown('<div class="slabel">Temperatura</div>', unsafe_allow_html=True)
+            temp = st.text_input("Temperatura (°C)", value=d.get("temperatura",""),
+                                  placeholder="Ex: 38.9", key=f"{pfx}_temp")
 
-        temperatura = ""
-        if valores.get("febre"):
-            st.markdown('<div class="sec-title">🌡️ Temperatura</div>', unsafe_allow_html=True)
-            temperatura = st.text_input(
-                "Temperatura (°C)",
-                value=d.get("temperatura",""),
-                placeholder="Ex: 38.9",
-                key=f"{prefixo}_temp"
-            )
+        st.markdown('<div class="slabel">Observação</div>', unsafe_allow_html=True)
+        idx = OBS_OPCOES.index(d.get("observacao_tipo",OBS_OPCOES[0])) if d.get("observacao_tipo") in OBS_OPCOES else 0
+        obs_t = st.selectbox("Situação atual", OBS_OPCOES, index=idx, key=f"{pfx}_ot")
+        obs_l = st.text_area("Descrição adicional", value=d.get("observacao_livre",""),
+                              height=80, placeholder="Detalhes para o relatório...", key=f"{pfx}_ol")
 
-        st.markdown('<div class="sec-title">📝 Observação</div>', unsafe_allow_html=True)
-        idx_obs = OPCOES_OBSERVACAO.index(d.get("observacao_tipo",OPCOES_OBSERVACAO[0])) \
-                  if d.get("observacao_tipo") in OPCOES_OBSERVACAO else 0
-        obs_tipo  = st.selectbox("Situação", options=OPCOES_OBSERVACAO, index=idx_obs, key=f"{prefixo}_ot")
-        obs_livre = st.text_area("Descrição adicional (aparece no PDF)", value=d.get("observacao_livre",""),
-                                  height=80, key=f"{prefixo}_ol", placeholder="Detalhes relevantes...")
+        st.markdown('<div class="slabel">Prontuário / Evolução</div>', unsafe_allow_html=True)
+        img_up = st.file_uploader("Anexar imagem JPG ou PNG", type=["jpg","jpeg","png"], key=f"{pfx}_img")
 
-        st.markdown('<div class="sec-title">📎 Prontuário / Evolução</div>', unsafe_allow_html=True)
-        img_up = st.file_uploader("Anexar imagem (JPG ou PNG)", type=["jpg","jpeg","png"], key=f"{prefixo}_img")
+        lbl = "💾 Salvar Alterações" if pfx != "novo" else "✓  Registrar Avaliação"
+        sub = st.form_submit_button(lbl, use_container_width=True, type="primary")
 
-        lbl = "💾 Salvar Alterações" if prefixo != "novo" else "✓ Registrar Avaliação"
-        submitted = st.form_submit_button(lbl, use_container_width=True, type="primary")
-
-    if submitted:
-        if not paciente or not leito:
-            st.error("Preencha o nome do paciente e o leito.")
-            return None
-
-        pb64  = d.get("prontuario_b64","")
-        pnome = d.get("prontuario_nome","")
-        if img_up:
-            pb64  = base64.b64encode(img_up.read()).decode()
-            pnome = img_up.name
-
-        dados = dict(
-            paciente=paciente, leito=leito, data=str(data_av),
-            setor=setor, avaliador=st.session_state.usuario_nome,
-            dias_cateter=dias_cateter, dias_ventilacao=dias_ventilacao,
-            medicacao=medicacao, temperatura=temperatura,
-            observacao_tipo=obs_tipo, observacao_livre=obs_livre,
-            prontuario_b64=pb64, prontuario_nome=pnome,
-        )
-        dados.update(valores)
-        score = calcular_score(dados)
-        risco, _ = classificar_risco(score)
-        dados.update(score=score, risco=risco)
+    if sub:
+        if not pac or not leito: st.error("Preencha nome e leito."); return None
+        pb64 = d.get("prontuario_b64",""); pnm = d.get("prontuario_nome","")
+        if img_up: pb64 = base64.b64encode(img_up.read()).decode(); pnm = img_up.name
+        dados = dict(paciente=pac, leito=leito, data=str(dtav), setor=setor,
+                     avaliador=st.session_state.usuario_nome,
+                     dias_cateter=dias_cat, dias_ventilacao=dias_vent,
+                     medicacao=med, temperatura=temp,
+                     observacao_tipo=obs_t, observacao_livre=obs_l,
+                     prontuario_b64=pb64, prontuario_nome=pnm)
+        dados.update(vals)
+        sc = calcular_score(dados); risco = classificar(sc)
+        dados.update(score=sc, risco=risco)
         return dados
     return None
 
 # ══════════════════════════════════════════════════════════════
-# NAV BAR
+# TOPBAR
 # ══════════════════════════════════════════════════════════════
-avs_all = carregar_avaliacoes()
-
+avs = carregar()
 st.markdown(f"""
-<div class="viginfec-nav">
-    <div class="nav-brand">🏥 <span>Vig</span>Infec</div>
-    <div class="nav-user">
-        <span class="nav-badge">{st.session_state.usuario_setor}</span>
-        <span>👤 {st.session_state.usuario_nome}</span>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+<div class="topbar">
+  <div class="topbar-brand">🏥 <em>Vig</em>Infec</div>
+  <div class="topbar-right">
+    <span class="topbar-setor">{st.session_state.usuario_setor}</span>
+    <span class="topbar-user">👤 {st.session_state.usuario_nome}</span>
+  </div>
+</div>""", unsafe_allow_html=True)
 
-# Botão logout fora da nav (streamlit limitation)
-col_logout = st.columns([6,1])[1]
-with col_logout:
-    if st.button("Sair", key="logout_btn"):
+# Logout — alinhado à direita via colunas
+_, col_out = st.columns([10,1])
+with col_out:
+    if st.button("Sair", key="logout"):
         fazer_logout(); st.rerun()
+
+st.markdown('<div style="height:4px"></div>', unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════
 # TABS
 # ══════════════════════════════════════════════════════════════
-tab1, tab2, tab3 = st.tabs(["📝  Nova Avaliação", "📊  Dashboard", "📂  Histórico"])
+tab1, tab2, tab3, tab4 = st.tabs(["📝  Nova Avaliação", "🏥  Visão por Setor", "📊  Dashboard", "📂  Histórico"])
 
 # ─────────────────────────────────────────────────────────────
 # TAB 1 — NOVA AVALIAÇÃO
 # ─────────────────────────────────────────────────────────────
 with tab1:
-    st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
-
-    resultado = renderizar_formulario("novo")
-    if resultado:
-        salvar_avaliacao(resultado)
-        rl, rc, emoji, cor = risco_info(resultado["risco"])
+    st.markdown('<div style="height:6px"></div>', unsafe_allow_html=True)
+    res = formulario("novo")
+    if res:
+        salvar(res)
+        rl,rc,em,cor = risco_meta(res["risco"])
         st.markdown(f"""
-        <div class="alert alert-{rc}">
-            <div class="alert-icon">{emoji}</div>
-            <div>
-                <div class="alert-title" style="color:{cor}">Risco {rl} — Score {resultado['score']} pontos</div>
-                <div class="alert-sub">{resultado['paciente']} · {resultado['leito']} · {resultado['setor']} · {resultado['avaliador']}</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        st.success("✅ Avaliação registrada com sucesso!")
-        pdf_b = gerar_pdf(resultado)
-        st.download_button(
-            "⬇️ Baixar Relatório PDF", data=bytes(pdf_b),
-            file_name=f"avaliacao_{resultado['paciente'].replace(' ','_')}_{resultado['data']}.pdf",
-            mime="application/pdf", use_container_width=True,
-        )
+        <div class="rbanner r-{rc}">
+          <div class="rbanner-icon">{em}</div>
+          <div class="rbanner-score">{res['score']}</div>
+          <div class="rbanner-body">
+            <div class="rbanner-title">Risco {rl}</div>
+            <div class="rbanner-sub">{res['paciente']} · Leito {res['leito']} · {res['setor']} · {res['avaliador']}</div>
+          </div>
+        </div>""", unsafe_allow_html=True)
+        st.success("Avaliação registrada com sucesso.")
+        pb = gerar_pdf(res)
+        st.download_button("⬇️  Baixar Relatório PDF", data=bytes(pb),
+            file_name=f"viginfec_{res['paciente'].replace(' ','_')}_{res['data']}.pdf",
+            mime="application/pdf", use_container_width=True)
 
 # ─────────────────────────────────────────────────────────────
-# TAB 2 — DASHBOARD
+# TAB 2 — VISÃO POR SETOR
 # ─────────────────────────────────────────────────────────────
 with tab2:
-    st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
-
-    if not avs_all:
-        st.markdown('<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-text">Nenhuma avaliação registrada ainda.</div></div>', unsafe_allow_html=True)
+    st.markdown('<div style="height:6px"></div>', unsafe_allow_html=True)
+    if not avs:
+        st.info("Nenhuma avaliação registrada ainda.")
     else:
-        df = pd.DataFrame(avs_all)
-        df["risco_d"] = df["risco"].apply(lambda r: "Médio" if "med" in str(r).lower() else str(r))
+        df_sv = pd.DataFrame(avs)
 
-        total  = len(df)
-        n_alto = int(df["risco"].str.lower().str.contains("alto",na=False).sum())
-        n_med  = int(df["risco"].str.lower().str.contains("med",na=False).sum())
-        n_bai  = int(df["risco"].str.lower().str.contains("baixo",na=False).sum())
-        pct    = f"{n_alto/total*100:.0f}%" if total else "0%"
+        # Resumo geral primeiro
+        total_sv  = len(df_sv)
+        altos_sv  = int(df_sv["risco"].str.lower().str.contains("alto",na=False).sum())
+        st.markdown(f"""
+        <div class="mrow" style="grid-template-columns:repeat(2,1fr);max-width:400px;">
+          <div class="mcard"><div class="mcard-n mn-total">{total_sv}</div><div class="mcard-l">Total geral</div></div>
+          <div class="mcard"><div class="mcard-n mn-alto">{altos_sv}</div><div class="mcard-l">Alto risco</div></div>
+        </div>""", unsafe_allow_html=True)
+
+        st.markdown('<div class="slabel">Situação atual de cada setor</div>', unsafe_allow_html=True)
+        st.markdown('<div class="sov-grid">', unsafe_allow_html=True)
+
+        for setor in SETORES:
+            avs_set = [a for a in avs if a.get("setor","") == setor]
+            n_tot  = len(avs_set)
+            n_alt  = sum(1 for a in avs_set if "alto"  in str(a.get("risco","")).lower())
+            n_med  = sum(1 for a in avs_set if "med"   in str(a.get("risco","")).lower())
+            n_bai  = sum(1 for a in avs_set if "baixo" in str(a.get("risco","")).lower())
+            pct_bar = int(n_alt/n_tot*100) if n_tot else 0
+            alerta  = n_alt > 0
+
+            alerta_html = '<div class="sov-alerta">⚠️ Atenção — pacientes de alto risco</div>' if alerta else ""
+            st.markdown(f"""
+            <div class="sov-card">
+              <div class="sov-name">🏥 {setor}</div>
+              <div class="sov-row"><span class="sov-lbl">Total avaliações</span><span class="sov-val">{n_tot}</span></div>
+              <div class="sov-row"><span class="sov-lbl" style="color:#e53e3e">Risco Alto</span><span class="sov-val" style="color:#e53e3e">{n_alt}</span></div>
+              <div class="sov-row"><span class="sov-lbl" style="color:#c07a1a">Risco Médio</span><span class="sov-val" style="color:#c07a1a">{n_med}</span></div>
+              <div class="sov-row"><span class="sov-lbl" style="color:#1a7a4a">Risco Baixo</span><span class="sov-val" style="color:#1a7a4a">{n_bai}</span></div>
+              <div class="sov-bar-wrap"><div class="sov-bar" style="width:{pct_bar}%"></div></div>
+              {alerta_html}
+            </div>""", unsafe_allow_html=True)
+
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # Lista de pacientes por setor (read-only)
+        st.markdown('<div class="slabel" style="margin-top:24px;">Pacientes por setor</div>', unsafe_allow_html=True)
+        setor_sel = st.selectbox("Selecione o setor", SETORES, key="sv_setor_sel")
+        avs_sel   = [a for a in avs if a.get("setor","") == setor_sel]
+
+        if not avs_sel:
+            st.caption("Nenhuma avaliação neste setor.")
+        else:
+            for av in avs_sel:
+                rl,rc,em,_ = risco_meta(av.get("risco","Baixo"))
+                fats_atv   = [c for c in FATORES_POR_SETOR.get(setor_sel,[]) if av.get(c)]
+                chips      = "".join([f'<span class="chip on">{ICONS.get(c,"")} {LABELS.get(c,c)}</span>' for c in fats_atv])
+                if not chips: chips = '<span class="chip">Sem fatores ativos</span>'
+                st.markdown(f"""
+                <div class="hcard h-{rc}">
+                  <div class="hcard-row1">
+                    <div>
+                      <div class="hcard-name">{av.get('paciente','-')} · Leito {av.get('leito','-')}</div>
+                      <div class="hcard-meta">📅 {av.get('data','-')} · 👤 {av.get('avaliador','-')}</div>
+                    </div>
+                    <div>
+                      <span class="hbadge b-{rc}">{em} {rl}</span>
+                      <div class="hscore">Score {av.get('score','-')}</div>
+                    </div>
+                  </div>
+                  <div class="chips">{chips}</div>
+                </div>""", unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────────────────────
+# TAB 3 — DASHBOARD
+# ─────────────────────────────────────────────────────────────
+with tab3:
+    st.markdown('<div style="height:6px"></div>', unsafe_allow_html=True)
+    if not avs:
+        st.info("Nenhuma avaliação registrada ainda.")
+    else:
+        df = pd.DataFrame(avs)
+        df["rd"] = df["risco"].apply(lambda r: "Médio" if "med" in str(r).lower() else str(r))
+
+        tot  = len(df)
+        nalt = int(df["risco"].str.lower().str.contains("alto",na=False).sum())
+        nmed = int(df["risco"].str.lower().str.contains("med",na=False).sum())
+        nbai = int(df["risco"].str.lower().str.contains("baixo",na=False).sum())
+        pct  = f"{nalt/tot*100:.0f}%" if tot else "0%"
 
         st.markdown(f"""
-        <div class="metric-grid">
-            <div class="metric-card metric-total">
-                <div class="metric-num">{total}</div>
-                <div class="metric-lbl">Total</div>
-            </div>
-            <div class="metric-card metric-alto">
-                <div class="metric-num">{n_alto}</div>
-                <div class="metric-lbl">Risco Alto · {pct}</div>
-            </div>
-            <div class="metric-card metric-medio">
-                <div class="metric-num">{n_med}</div>
-                <div class="metric-lbl">Risco Médio</div>
-            </div>
-            <div class="metric-card metric-baixo">
-                <div class="metric-num">{n_bai}</div>
-                <div class="metric-lbl">Risco Baixo</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        <div class="mrow">
+          <div class="mcard"><div class="mcard-n mn-total">{tot}</div><div class="mcard-l">Total</div></div>
+          <div class="mcard"><div class="mcard-n mn-alto">{nalt}</div><div class="mcard-l">Alto · {pct}</div></div>
+          <div class="mcard"><div class="mcard-n mn-medio">{nmed}</div><div class="mcard-l">Médio</div></div>
+          <div class="mcard"><div class="mcard-n mn-baixo">{nbai}</div><div class="mcard-l">Baixo</div></div>
+        </div>""", unsafe_allow_html=True)
 
-        c1, c2 = st.columns(2)
+        CHART_LAYOUT = dict(
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(family="Inter",size=11,color="#4a5568"),
+            margin=dict(t=36,b=8,l=8,r=8),
+        )
+
+        c1,c2 = st.columns(2)
         with c1:
-            cnt = df["risco_d"].value_counts().reset_index()
-            cnt.columns = ["Risco","Qtd"]
-            fig = px.pie(cnt, names="Risco", values="Qtd",
-                         color="Risco", hole=0.55,
-                         color_discrete_map={"Alto":"#dc2626","Médio":"#d97706","Baixo":"#059669"})
-            fig.update_layout(
-                title=dict(text="Distribuição por Risco", font=dict(size=13, family="DM Sans"), x=0),
-                margin=dict(t=40,b=10,l=0,r=0),
-                legend=dict(font=dict(family="DM Sans",size=11)),
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(family="DM Sans"),
-            )
-            fig.update_traces(textfont=dict(family="DM Sans"))
+            cnt = df["rd"].value_counts().reset_index(); cnt.columns=["Risco","Qtd"]
+            fig = px.pie(cnt, names="Risco", values="Qtd", hole=0.58,
+                         color="Risco", color_discrete_map={"Alto":"#e53e3e","Médio":"#c07a1a","Baixo":"#1a7a4a"})
+            fig.update_layout(**CHART_LAYOUT, title=dict(text="Distribuição por Risco",font=dict(size=12),x=0,y=.97))
+            fig.update_traces(textfont=dict(family="Inter"), textinfo="percent+label")
             st.plotly_chart(fig, use_container_width=True)
 
         with c2:
             if "setor" in df.columns:
-                cnt_s = df["setor"].value_counts().reset_index()
-                cnt_s.columns = ["Setor","Qtd"]
+                cnt_s = df["setor"].value_counts().reset_index(); cnt_s.columns=["Setor","Qtd"]
                 fig_s = px.bar(cnt_s, x="Qtd", y="Setor", orientation="h",
-                               color="Qtd", color_continuous_scale=["#bfdbfe","#1a3a6b"])
-                fig_s.update_layout(
-                    title=dict(text="Avaliações por Setor", font=dict(size=13,family="DM Sans"),x=0),
-                    margin=dict(t=40,b=10,l=0,r=0),
-                    coloraxis_showscale=False,
-                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                    font=dict(family="DM Sans"),
-                    yaxis=dict(tickfont=dict(size=11)),
-                )
+                               color="Qtd", color_continuous_scale=["#dbeafe","#163d6e"])
+                fig_s.update_layout(**CHART_LAYOUT, title=dict(text="Avaliações por Setor",font=dict(size=12),x=0,y=.97),
+                                    coloraxis_showscale=False,
+                                    xaxis=dict(showgrid=True, gridcolor="#f1f5f9"),
+                                    yaxis=dict(tickfont=dict(size=10)))
                 st.plotly_chart(fig_s, use_container_width=True)
 
-        # Barras de prevalência
-        cols_f   = [c for c in list(LABELS_FATORES.keys()) if c in df.columns]
-        labels_f = [LABELS_FATORES[c] for c in cols_f]
-        prev     = [int(df[c].sum()) for c in cols_f]
-        fig_bar  = go.Figure(go.Bar(
-            x=prev, y=labels_f, orientation="h",
-            marker=dict(
-                color=prev,
-                colorscale=[[0,"#d1fae5"],[0.5,"#fef3c7"],[1,"#fee2e2"]],
-                showscale=False,
-            ),
-            text=prev, textposition="outside",
+        colf = [c for c in LABELS if c in df.columns]
+        prev = [int(df[c].sum()) for c in colf]
+        lblf = [LABELS[c] for c in colf]
+
+        fig_b = go.Figure(go.Bar(
+            x=prev, y=lblf, orientation="h",
+            marker=dict(color=prev, colorscale=[[0,"#d1fae5"],[.5,"#fef3c7"],[1,"#fee2e2"]], showscale=False),
+            text=prev, textposition="outside", textfont=dict(size=10,family="Inter"),
         ))
-        fig_bar.update_layout(
-            title=dict(text="Prevalência de Fatores de Risco", font=dict(size=13,family="DM Sans"),x=0),
-            margin=dict(t=40,b=10,l=0,r=40),
-            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(family="DM Sans"),
-            xaxis=dict(showgrid=False, showticklabels=False),
-            yaxis=dict(tickfont=dict(size=11)),
-            height=max(280, len(cols_f)*32),
+        fig_b.update_layout(**CHART_LAYOUT,
+            title=dict(text="Prevalência de Fatores de Risco",font=dict(size=12),x=0,y=.99),
+            xaxis=dict(showgrid=False,showticklabels=False,range=[0,max(prev)*1.15 if prev else 1]),
+            yaxis=dict(tickfont=dict(size=10)),
+            height=max(260, len(colf)*28),
+            margin=dict(t=36,b=8,l=8,r=48),
         )
-        st.plotly_chart(fig_bar, use_container_width=True)
+        st.plotly_chart(fig_b, use_container_width=True)
 
 # ─────────────────────────────────────────────────────────────
-# TAB 3 — HISTÓRICO
+# TAB 4 — HISTÓRICO
 # ─────────────────────────────────────────────────────────────
-with tab3:
-    st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
-
-    if not avs_all:
-        st.markdown('<div class="empty-state"><div class="empty-icon">📂</div><div class="empty-text">Nenhuma avaliação registrada ainda.</div></div>', unsafe_allow_html=True)
+with tab4:
+    st.markdown('<div style="height:6px"></div>', unsafe_allow_html=True)
+    if not avs:
+        st.info("Nenhuma avaliação registrada ainda.")
     else:
-        # Filtros compactos
-        fc1, fc2, fc3 = st.columns([3,1,1])
-        with fc1: busca = st.text_input("", placeholder="🔍  Buscar paciente, leito ou avaliador...", label_visibility="collapsed")
+        # Barra de filtros
+        fc1,fc2,fc3 = st.columns([3,1,1])
+        with fc1: busca   = st.text_input("", placeholder="🔍  Buscar por paciente, leito ou avaliador...", label_visibility="collapsed")
         with fc2: f_risco = st.selectbox("", ["Todos","Alto","Médio","Baixo"], label_visibility="collapsed")
         with fc3: f_setor = st.selectbox("", ["Todos"]+SETORES, label_visibility="collapsed")
 
-        filtrados = avs_all
+        filt = avs
         if busca:
             b = busca.lower()
-            filtrados = [a for a in filtrados if b in str(a.get("paciente","")).lower()
-                         or b in str(a.get("leito","")).lower() or b in str(a.get("avaliador","")).lower()]
+            filt = [a for a in filt if b in str(a.get("paciente","")).lower()
+                    or b in str(a.get("leito","")).lower() or b in str(a.get("avaliador","")).lower()]
         if f_risco != "Todos":
-            filtrados = [a for a in filtrados if
+            filt = [a for a in filt if
                 (f_risco=="Médio" and "med" in str(a.get("risco","")).lower()) or
                 (f_risco!="Médio" and f_risco.lower() in str(a.get("risco","")).lower())]
         if f_setor != "Todos":
-            filtrados = [a for a in filtrados if a.get("setor","") == f_setor]
+            filt = [a for a in filt if a.get("setor","") == f_setor]
 
-        st.caption(f"{len(filtrados)} registro{'s' if len(filtrados)!=1 else ''}")
+        st.caption(f"{len(filt)} registro{'s' if len(filt)!=1 else ''} encontrado{'s' if len(filt)!=1 else ''}")
         st.markdown('<div style="height:4px"></div>', unsafe_allow_html=True)
 
-        for av in filtrados:
-            av_id   = av.get("id",0)
-            rl, rc, emoji_r, cor_r = risco_info(av.get("risco","Baixo"))
-            score   = av.get("score","-")
-            fat_av  = FATORES_POR_SETOR.get(av.get("setor","UTI Geral"), list(LABELS_FATORES.keys()))
-            ativos  = [c for c in fat_av if av.get(c)]
-
-            # Card do histórico
-            chips_html = "".join([
-                f'<span class="chip chip-active">{ICONS_FATORES.get(c,"")} {LABELS_FATORES.get(c,c)}</span>'
-                for c in ativos
-            ])
-            if not chips_html:
-                chips_html = '<span class="chip">Nenhum fator ativo</span>'
+        for av in filt:
+            av_id = av.get("id",0)
+            rl,rc,em,_ = risco_meta(av.get("risco","Baixo"))
+            fat_atv    = [c for c in FATORES_POR_SETOR.get(av.get("setor","UTI Geral"),[]) if av.get(c)]
+            chips_h    = "".join([f'<span class="chip on">{ICONS.get(c,"")} {LABELS.get(c,c)}</span>' for c in fat_atv])
+            if not chips_h: chips_h = '<span class="chip">Sem fatores ativos</span>'
 
             st.markdown(f"""
-            <div class="hcard hcard-{rc}">
-                <div class="hcard-top">
-                    <div>
-                        <div class="hcard-name">{av.get('paciente','-')} · {av.get('leito','-')}</div>
-                        <div class="hcard-meta">📅 {av.get('data','-')} &nbsp;·&nbsp; 🏥 {av.get('setor','-')} &nbsp;·&nbsp; 👤 {av.get('avaliador','-')}</div>
-                    </div>
-                    <div>
-                        <span class="hcard-badge badge-{rc}">{emoji_r} {rl}</span>
-                        <div style="text-align:right;font-size:.78rem;color:#64748b;margin-top:4px;font-family:'DM Mono',monospace;">Score {score}</div>
-                    </div>
+            <div class="hcard h-{rc}">
+              <div class="hcard-row1">
+                <div>
+                  <div class="hcard-name">{av.get('paciente','-')} · Leito {av.get('leito','-')}</div>
+                  <div class="hcard-meta">📅 {av.get('data','-')} &nbsp;·&nbsp; 🏥 {av.get('setor','-')} &nbsp;·&nbsp; 👤 {av.get('avaliador','-')}</div>
                 </div>
-                <div class="hcard-chips">{chips_html}</div>
-            </div>
-            """, unsafe_allow_html=True)
+                <div>
+                  <span class="hbadge b-{rc}">{em} {rl}</span>
+                  <div class="hscore">Score {av.get('score','-')}</div>
+                </div>
+              </div>
+              <div class="chips">{chips_h}</div>
+            </div>""", unsafe_allow_html=True)
 
-            # Ações expandíveis
-            with st.expander("Ver detalhes / Editar"):
+            with st.expander("Detalhes · Editar · Excluir"):
                 if st.session_state.editando_id == av_id:
-                    st.markdown("#### ✏️ Editando avaliação")
-                    res_edit = renderizar_formulario(f"edit_{av_id}", dados_iniciais=av)
-                    if res_edit:
-                        atualizar_avaliacao(av_id, res_edit)
+                    st.markdown("#### ✏️ Editando")
+                    res_e = formulario(f"e{av_id}", di=av)
+                    if res_e:
+                        atualizar(av_id, res_e)
                         st.session_state.editando_id = None
-                        st.success("✅ Atualizado!")
+                        st.success("Atualizado!")
                         st.rerun()
-                    if st.button("Cancelar", key=f"cancel_{av_id}"):
+                    if st.button("Cancelar", key=f"cx{av_id}"):
                         st.session_state.editando_id = None; st.rerun()
                 else:
-                    # Detalhes
-                    if av.get("medicacao"):
-                        st.write(f"💊 **Medicação:** {av['medicacao']}")
-                    if av.get("febre") and av.get("temperatura"):
-                        st.write(f"🌡️ **Temperatura:** {av['temperatura']} °C")
-                    if av.get("observacao_tipo"):
-                        st.write(f"📌 **Obs:** {av['observacao_tipo']}")
-                    if av.get("observacao_livre"):
-                        st.caption(av["observacao_livre"])
-                    if av.get("prontuario_b64"):
-                        try:
-                            img_b = base64.b64decode(av["prontuario_b64"])
-                            st.image(img_b, caption=av.get("prontuario_nome","Anexo"), use_column_width=True)
-                        except: st.warning("Não foi possível exibir o anexo.")
+                    # Info
+                    r1,r2 = st.columns(2)
+                    with r1:
+                        if av.get("medicacao"):    st.write(f"💊 **Medicação:** {av['medicacao']}")
+                        if av.get("temperatura"):  st.write(f"🌡️ **Temperatura:** {av['temperatura']} °C")
+                    with r2:
+                        if av.get("observacao_tipo"): st.write(f"📌 {av['observacao_tipo']}")
+                        if av.get("observacao_livre"): st.caption(av["observacao_livre"])
 
-                    col_a, col_b, col_c = st.columns(3)
-                    with col_a:
-                        pdf_b = gerar_pdf(av)
-                        st.download_button(
-                            "⬇️ PDF", data=bytes(pdf_b),
-                            file_name=f"rel_{str(av.get('paciente','')).replace(' ','_')}_{av.get('data','')}.pdf",
-                            mime="application/pdf", key=f"pdf_{av_id}",
-                        )
-                    with col_b:
-                        if st.button("✏️ Editar", key=f"edit_{av_id}"):
+                    if av.get("prontuario_b64"):
+                        with st.expander("📎 Ver prontuário"):
+                            try:
+                                st.image(base64.b64decode(av["prontuario_b64"]),
+                                         caption=av.get("prontuario_nome","Anexo"),
+                                         use_column_width=True)
+                            except: st.warning("Não foi possível exibir o anexo.")
+
+                    ba,bb,bc = st.columns(3)
+                    with ba:
+                        pb = gerar_pdf(av)
+                        st.download_button("⬇️ PDF", data=bytes(pb),
+                            file_name=f"viginfec_{str(av.get('paciente','')).replace(' ','_')}_{av.get('data','')}.pdf",
+                            mime="application/pdf", key=f"p{av_id}")
+                    with bb:
+                        if st.button("✏️ Editar", key=f"eb{av_id}"):
                             st.session_state.editando_id = av_id; st.rerun()
-                    with col_c:
-                        if st.button("🗑️ Excluir", key=f"del_{av_id}"):
-                            deletar_avaliacao(av_id); st.rerun()
+                    with bc:
+                        if st.button("🗑️ Excluir", key=f"db{av_id}"):
+                            deletar(av_id); st.rerun()
