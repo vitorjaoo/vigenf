@@ -18,8 +18,8 @@ try:
     SUPABASE_URL = st.secrets["SUPABASE_URL"]
     SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 except:
-    SUPABASE_URL = "https://juzyjqauwujtcsxgsogh.supabase.co"
-    SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1enlqcWF1d3VqdGNzeGdzb2doIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzE1MjUsImV4cCI6MjA4ODMwNzUyNX0.r90v3aN_lf0Hrf7uyFll4ZQh29WGz8PQKNegBH8p1NY"
+    SUPABASE_URL = "https://SEU_PROJETO.supabase.co"
+    SUPABASE_KEY = "SUA_CHAVE_ANON"
 
 if USE_SUPABASE:
     from supabase import create_client
@@ -868,12 +868,12 @@ with tab3:
             marker=dict(color=prev, colorscale=[[0,"#d1fae5"],[.5,"#fef3c7"],[1,"#fee2e2"]], showscale=False),
             text=prev, textposition="outside", textfont=dict(size=10,family="Inter"),
         ))
-        fig_b.update_layout(**CHART_LAYOUT,
-            title=dict(text="Prevalência de Fatores de Risco",font=dict(size=12),x=0,y=.99),
+        layout_b = {**CHART_LAYOUT, "margin": dict(t=36,b=8,l=8,r=48)}
+        fig_b.update_layout(**layout_b,
+            title=dict(text="Prevalencia de Fatores de Risco",font=dict(size=12),x=0,y=.99),
             xaxis=dict(showgrid=False,showticklabels=False,range=[0,max(prev)*1.15 if prev else 1]),
             yaxis=dict(tickfont=dict(size=10)),
             height=max(260, len(colf)*28),
-            margin=dict(t=36,b=8,l=8,r=48),
         )
         st.plotly_chart(fig_b, use_container_width=True)
 
