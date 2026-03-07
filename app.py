@@ -18,8 +18,8 @@ try:
     SUPABASE_URL = st.secrets["SUPABASE_URL"]
     SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 except:
-    SUPABASE_URL = "https://SEU_PROJETO.supabase.co"
-    SUPABASE_KEY = "SUA_CHAVE_ANON"
+    SUPABASE_URL = "https://juzyjqauwujtcsxgsogh.supabase.co"
+    SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1enlqcWF1d3VqdGNzeGdzb2doIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzE1MjUsImV4cCI6MjA4ODMwNzUyNX0.r90v3aN_lf0Hrf7uyFll4ZQh29WGz8PQKNegBH8p1NY"
 
 if USE_SUPABASE:
     from supabase import create_client
