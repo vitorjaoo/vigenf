@@ -455,22 +455,25 @@ def fazer_logout():
 
 # ── LOGIN ─────────────────────────────────────────────────────
 if not st.session_state.logado:
+    # Fundo azul via CSS na página toda
     st.markdown("""
-    <div style="min-height:100vh;background:linear-gradient(160deg,#0d1f3c 0%,#163d6e 100%);
-    display:flex;align-items:center;justify-content:center;padding:20px;position:fixed;
-    inset:0;z-index:9999;"></div>""", unsafe_allow_html=True)
+    <style>
+    .stApp { background: linear-gradient(160deg,#0d1f3c 0%,#163d6e 100%) !important; }
+    .main .block-container { background: transparent !important; padding: 60px 16px 20px !important; }
+    </style>
+    """, unsafe_allow_html=True)
 
-    _, col, _ = st.columns([1,1,1])
+    _, col, _ = st.columns([1,1.1,1])
     with col:
         st.markdown("""
-        <div style="background:#fff;border-radius:16px;padding:36px 32px 28px;
-        box-shadow:0 20px 60px rgba(0,0,0,.28);margin-top:80px;">
-          <div style="text-align:center;margin-bottom:24px;">
+        <div style="background:#fff;border-radius:16px;padding:32px 28px 24px;
+        box-shadow:0 20px 60px rgba(0,0,0,.35);">
+          <div style="text-align:center;margin-bottom:22px;">
             <div style="width:52px;height:52px;background:#0d1f3c;border-radius:12px;
             display:inline-flex;align-items:center;justify-content:center;
             font-size:1.5rem;margin-bottom:10px;">🏥</div>
-            <div style="font-size:1.3rem;font-weight:700;color:#0d1f3c;letter-spacing:-.3px;">VigInfec</div>
-            <div style="font-size:.78rem;color:#8a94a6;margin-top:2px;">Vigilância de Infecção Hospitalar</div>
+            <div style="font-size:1.3rem;font-weight:700;color:#0d1f3c;letter-spacing:-.3px;font-family:Inter,sans-serif;">VigInfec</div>
+            <div style="font-size:.78rem;color:#8a94a6;margin-top:2px;font-family:Inter,sans-serif;">Vigilância de Infecção Hospitalar</div>
           </div>
         </div>""", unsafe_allow_html=True)
 
